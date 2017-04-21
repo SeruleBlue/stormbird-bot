@@ -2,6 +2,7 @@ from discord.ext.commands import Bot
 from random import randint
 import logging
 import time
+import asyncio
 
 logging.basicConfig(level=logging.INFO)
 
@@ -11,7 +12,8 @@ COOLDOWN_S = 60
 effectsTable = {}     # dictionary of number to effect
 userStatus = {}       # dictionary of username to [timeOfLastRequest, effectName=]
 
-async def loadEffects():
+@asyncio.coroutine
+def loadEffects():
   try:
     file = open(FILE_NAME, 'r')
     effects = [x.strip('\n') for x in file.readlines()]
@@ -30,7 +32,8 @@ async def loadEffects():
 
 # As superuser, do
 #   !wild <roll#>
-async def getAndApplyEffect(bot: Bot, message):
+@asyncio.coroutine
+def getAndApplyEffect(bot: Bot, message):
   name = message.author.display_name
   superUser = str(message.author) == "Serule#9451"
 
@@ -40,8 +43,8 @@ async def getAndApplyEffect(bot: Bot, message):
   elif not superUser:
     cd = getCd(name)
     if cd > 0:
-      return await bot.send_message(message.channel, name + "'s Wild Magic is on cooldown. Wait " + str(cd) +
-                                    " more " + pl(cd, 'second') + ".")
+      return (yield from bot.send_message(message.channel, name + "'s Wild Magic is on cooldown. Wait " + str(cd) +
+                                    " more " + pl(cd, 'second') + "."))
   userStatus[name][0] = int(time.time())
 
   roll = randint(0, 100)
@@ -86,13 +89,14 @@ async def getAndApplyEffect(bot: Bot, message):
     userStatus[name][1] = 'unicorn'
 
   response = '(' + str(roll) + ') ' + effectsTable[roll].replace('{name}', name)
-  return await bot.send_message(message.channel, response)
+  return (yield from bot.send_message(message.channel, response))
 
 
 # As superuser, do
 #   !wild clear
 # returns False if an effect will cause the message to be interrupted
-async def checkOngoingEffect(bot: Bot, message):
+@asyncio.coroutine
+def checkOngoingEffect(bot: Bot, message):
   name = message.author.display_name
 
   superUser = str(message.author) == "Serule#9451"
@@ -115,48 +119,48 @@ async def checkOngoingEffect(bot: Bot, message):
 
   effectName = userStatus[name][1]
   if effectName == 'mute':
-    await bot.send_message(message.channel, "💕 Pink bubbles float out of " + name + "'s mouth! 💕 " +
+    yield from bot.send_message(message.channel, "💕 Pink bubbles float out of " + name + "'s mouth! 💕 " +
                            "(" + str(cd) + "s)")
     try:
-      await bot.delete_message(message)
+      yield from bot.delete_message(message)
     except Exception as e:
       print("[Wild Magic] Couldn't delete a message.")
     return False
   elif effectName == 'shield':
-    await bot.add_reaction(message, '🛡')
+    yield from bot.add_reaction(message, '🛡')
   elif effectName == 'flameBurst':
-    await bot.add_reaction(message, '🔥')
+    yield from bot.add_reaction(message, '🔥')
   elif effectName == 'resistance':
-    await bot.add_reaction(message, '💊')
+    yield from bot.add_reaction(message, '💊')
   elif effectName == 'eye':
-    await bot.add_reaction(message, '👁')
+    yield from bot.add_reaction(message, '👁')
   elif effectName == 'light':
-    await bot.add_reaction(message, '💡')
+    yield from bot.add_reaction(message, '💡')
   elif effectName == 'butterfly':
-    await bot.add_reaction(message, '🦋')
+    yield from bot.add_reaction(message, '🦋')
   elif effectName == 'maxDamageSpell':
-    await bot.add_reaction(message, '⚔')
+    yield from bot.add_reaction(message, '⚔')
     userStatus[name][1] = None
   elif effectName == 'invisible':
-    await bot.add_reaction(message, '👻')
+    yield from bot.add_reaction(message, '👻')
   elif effectName == 'revive':
-    await bot.add_reaction(message, '✝')
+    yield from bot.add_reaction(message, '✝')
   elif effectName == 'big':
-    await bot.add_reaction(message, '⬆')
+    yield from bot.add_reaction(message, '⬆')
   elif effectName == 'vulnerable':
-    await bot.add_reaction(message, '💔')
+    yield from bot.add_reaction(message, '💔')
   elif effectName == 'music':
-    await bot.add_reaction(message, '🎶')
+    yield from bot.add_reaction(message, '🎶')
   elif effectName == 'teleport':
-    await bot.add_reaction(message, '🏃')
+    yield from bot.add_reaction(message, '🏃')
   elif effectName == 'unicorn':
-    await bot.add_reaction(message, '🦄')
+    yield from bot.add_reaction(message, '🦄')
   elif effectName == 'allCaps':
     if not message.content.isupper():
-      await bot.send_message(message.channel, name + " must shout when they speak! " +
+      yield from bot.send_message(message.channel, name + " must shout when they speak! " +
                              "(" + str(cd) + "s)")
       try:
-        await bot.delete_message(message)
+        yield from bot.delete_message(message)
       except Exception as e:
         print("[Wild Magic] Couldn't delete a message.")
       return False
