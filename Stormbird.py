@@ -2,35 +2,41 @@ from discord.ext.commands import Bot
 from discord import emoji
 from random import randint
 import logging
+from modules import wildmagic
 
 logging.basicConfig(level=logging.INFO)
 stormbird = Bot(command_prefix="!", description="Type !help for commands")
+
 
 @stormbird.event
 async def on_ready():
   print("Client logged in")
 
+  ### Set up modules
+  await wildmagic.loadEffects()
 
 @stormbird.event
 async def on_message(message):
+  nameUnique = str(message.author)
+  if nameUnique == 'stormbird#3705':
+    return
+
+  if not await wildmagic.checkOngoingEffect(stormbird, message):
+    return
 
   if message.content.startswith('!help'):
     await help(message)
-    return
-  if message.content.startswith('!roll'):
+  elif message.content.startswith('!roll'):
     await roll(message)
-    return
+  elif message.content.startswith('!wild'):
+    await wildmagic.getAndApplyEffect(stormbird, message)
 
   name = str.lower(message.author.display_name)
-  nameUnique = str(message.author)
-  if name == 'stormbird':
-    return
   if name == 'ayd' or nameUnique == 'AYD#5916':
     if randint(0, 4) == 0:
       await stormbird.add_reaction(message, '🐰')
-    return
-  if name == 'vulpes':
-    return await stormbird.add_reaction(message, '👻')
+  elif name == 'vulpes':
+    await stormbird.add_reaction(message, '👻')
 
 async def help(message):
   reply = ("Hello, " + message.author.display_name + "! I'm Serule's minion. Try these:\n"
