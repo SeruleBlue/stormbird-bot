@@ -1,21 +1,26 @@
 from discord.ext.commands import Bot
+from modules import util
 from random import randint
+import asyncio
+import codecs
 import logging
 import time
-import asyncio
 
 logging.basicConfig(level=logging.INFO)
 
-FILE_NAME = 'data/dnd_wildMagic.txt'
+DEBUG = 'Wild Magic'
+FILE_NAME_EFFECTS = 'data/dnd_wildMagic.txt'
+FILE_NAME_REACT = 'data/dnd_wildMagicReactions.txt'
 COOLDOWN_S = 60
 
 effectsTable = {}     # dictionary of number to effect
+effectsEmoji = {}     # dictionary of effectName to reaction emoji
 userStatus = {}       # dictionary of username to [timeOfLastRequest, effectName=]
 
 @asyncio.coroutine
 def loadEffects():
   try:
-    file = open(FILE_NAME, 'r')
+    file = open(FILE_NAME_EFFECTS, 'r')
     effects = [x.strip('\n') for x in file.readlines()]
     for effect in effects:
       die0 = effect[0:2]
@@ -24,10 +29,16 @@ def loadEffects():
       die1 = die1.lstrip('0') if die1 != "00" else 0
       effectsTable[int(die0)] = effect[6:]
       effectsTable[int(die1)] = effect[6:]
+    file.close()
+    file = codecs.open(FILE_NAME_REACT, 'r', 'utf-8')
+    reactions = [x.strip('\n') for x in file.readlines()]
+    file.close()
+    for reaction in reactions:
+      k, v = reaction.split()
+      effectsEmoji[k] = v
   except Exception as e:
-    print('[Wild Magic] Error when loading effects:', e)
+    util.log(DEBUG, "Error when loading effects: " + e)
     return
-  print('[Wild Magic] Module ready!')
 
 
 # As superuser, do
@@ -35,7 +46,7 @@ def loadEffects():
 @asyncio.coroutine
 def getAndApplyEffect(bot: Bot, message):
   name = message.author.display_name
-  superUser = str(message.author) == "Serule#9451"
+  superUser = util.isSuperUser(message.author)
 
   # check cooldown
   if name not in userStatus:
@@ -50,9 +61,8 @@ def getAndApplyEffect(bot: Bot, message):
   roll = randint(0, 100)
 
   if superUser:
-    args = str.split(message.content)
-    if len(args) > 1:
-      roll = int(args[1])
+    newRoll = util.getArg(message.content, 1)
+    roll = int(newRoll) if newRoll is not None else roll
 
   # special cases
   if roll == 49 or roll == 50:
@@ -98,14 +108,11 @@ def getAndApplyEffect(bot: Bot, message):
 @asyncio.coroutine
 def checkOngoingEffect(bot: Bot, message):
   name = message.author.display_name
-
-  superUser = str(message.author) == "Serule#9451"
+  superUser = util.isSuperUser(message.author)
   if superUser:
-    args = str.split(message.content)
-    if len(args) > 1:
-      if args[1] == 'clear':    # remove all statuses and cooldowns
-        userStatus.clear()
-        return
+    if util.getArg(message.content, 1) == 'clear':    # remove all statuses and cooldowns
+      userStatus.clear()
+      return
 
   if name not in userStatus or userStatus[name][1] is None:
     return True
@@ -116,45 +123,19 @@ def checkOngoingEffect(bot: Bot, message):
     userStatus[name][1] = None
     return True
 
-
   effectName = userStatus[name][1]
+  if effectName in effectsEmoji:
+    yield from bot.add_reaction(message, effectsEmoji[effectName])
   if effectName == 'mute':
     yield from bot.send_message(message.channel, "💕 Pink bubbles float out of " + name + "'s mouth! 💕 " +
                            "(" + str(cd) + "s)")
     try:
       yield from bot.delete_message(message)
     except Exception as e:
-      print("[Wild Magic] Couldn't delete a message.")
+      util.log(DEBUG, "Couldn't delete a message.")
     return False
-  elif effectName == 'shield':
-    yield from bot.add_reaction(message, '🛡')
-  elif effectName == 'flameBurst':
-    yield from bot.add_reaction(message, '🔥')
-  elif effectName == 'resistance':
-    yield from bot.add_reaction(message, '💊')
-  elif effectName == 'eye':
-    yield from bot.add_reaction(message, '👁')
-  elif effectName == 'light':
-    yield from bot.add_reaction(message, '💡')
-  elif effectName == 'butterfly':
-    yield from bot.add_reaction(message, '🦋')
   elif effectName == 'maxDamageSpell':
-    yield from bot.add_reaction(message, '⚔')
     userStatus[name][1] = None
-  elif effectName == 'invisible':
-    yield from bot.add_reaction(message, '👻')
-  elif effectName == 'revive':
-    yield from bot.add_reaction(message, '✝')
-  elif effectName == 'big':
-    yield from bot.add_reaction(message, '⬆')
-  elif effectName == 'vulnerable':
-    yield from bot.add_reaction(message, '💔')
-  elif effectName == 'music':
-    yield from bot.add_reaction(message, '🎶')
-  elif effectName == 'teleport':
-    yield from bot.add_reaction(message, '🏃')
-  elif effectName == 'unicorn':
-    yield from bot.add_reaction(message, '🦄')
   elif effectName == 'allCaps':
     if not message.content.isupper():
       yield from bot.send_message(message.channel, name + " must shout when they speak! " +
@@ -162,12 +143,12 @@ def checkOngoingEffect(bot: Bot, message):
       try:
         yield from bot.delete_message(message)
       except Exception as e:
-        print("[Wild Magic] Couldn't delete a message.")
+        util.log(DEBUG, "Couldn't delete a message.")
       return False
   return True
 
 def getCd(name):
-  if not name in userStatus:
+  if name not in userStatus:
     return 0
   return (userStatus[name][0] + COOLDOWN_S) - int(time.time())
 

@@ -1,0 +1,14 @@
+shield 👁
+flameBurst 🔥
+resistance 💊
+eye 👁
+light 💡
+butterfly 🦋
+maxDamageSpell ⚔
+invisible 👻
+revive ✝
+big ⬆
+vulnerable 💔
+music 🎶
+teleport 🏃
+unicorn 🦄
