@@ -1,8 +1,10 @@
 from discord.ext.commands import Bot
+from modules import timezone
 from modules import util
 from modules import wildmagic
 from random import randint
 import asyncio
+import datetime
 import logging
 import re
 
@@ -10,13 +12,16 @@ logging.basicConfig(level=logging.INFO)
 stormbird = Bot(command_prefix="!", description="Type !help for commands")
 
 FILE_NAME_KEY = 'data/key.txt'
+startTime = None
 
 @stormbird.event
 @asyncio.coroutine
 def on_ready():
   ### Set up modules
   yield from wildmagic.loadEffects()
-  util.print('Stormbird', 'Client ready.')
+  global startTime
+  startTime = str(datetime.datetime.now())
+  util.log('Stormbird', 'Client ready.')
 
 @stormbird.event
 @asyncio.coroutine
@@ -28,6 +33,8 @@ def on_message(message):
   if not (yield from wildmagic.checkOngoingEffect(stormbird, message)):
     return
 
+  yield from timezone.convertTimezone(stormbird, message)
+
   if message.content.startswith('!help'):
     yield from help(message)
   elif message.content.startswith('!roll'):
@@ -35,7 +42,7 @@ def on_message(message):
   elif message.content.startswith('!wild'):
     yield from wildmagic.getAndApplyEffect(stormbird, message)
   elif message.content.startswith('!status'):
-    yield from stormbird.send_message(message.channel, 'Stormbird is alive.')
+    yield from stormbird.send_message(message.channel, 'Stormbird is up since ' + startTime + '.')
     return
 
   name = str.lower(message.author.display_name)
