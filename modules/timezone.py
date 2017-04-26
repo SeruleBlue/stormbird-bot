@@ -32,7 +32,7 @@ def convertTimezone(bot: Bot, message):
       minute = rawTime[c+1:c+3].zfill(2)
     else:
       hour = int(re.sub("\D", "", rawTime))
-    if hour > 12 or minute > 59:
+    if hour > 12 or int(minute) > 59:
       continue
     subresponse = timeGroup + " is: "
     for zone in timeZoneIter:
