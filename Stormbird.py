@@ -45,12 +45,19 @@ def on_message(message):
     yield from stormbird.send_message(message.channel, 'Stormbird is up since ' + startTime + '.')
     return
 
+  #TODO move this stuff outta here
   name = str.lower(message.author.display_name)
-  if name == 'ayd' or nameUnique == 'AYD#5916':
-    if randint(0, 4) == 0:
+  if nameUnique == 'AYD#5916' and randint(1, 5) == 1:
       yield from stormbird.add_reaction(message, '🐰')
   elif name == 'vulpes':
     yield from stormbird.add_reaction(message, '👻')
+  elif nameUnique == 'KindaNice#5682' and randint(1, 7) == 1:
+    yield from stormbird.add_reaction(message, '👻')
+  elif nameUnique == 'Tenshu#8481' and randint(1, 5) == 1:
+    yield from stormbird.add_reaction(message, '👻')
+  elif nameUnique == 'Serule#9451' and randint(1, 5) == 1:
+    yield from stormbird.add_reaction(message, '🐦')
+
 
 @asyncio.coroutine
 def help(message):
