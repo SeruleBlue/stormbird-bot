@@ -1,4 +1,5 @@
 from discord.ext.commands import Bot
+from modules import reaction
 from modules import timezone
 from modules import util
 from modules import wildmagic
@@ -27,13 +28,14 @@ def on_ready():
 @asyncio.coroutine
 def on_message(message):
   nameUnique = str(message.author)
-  if nameUnique == 'stormbird#3705':
+  if nameUnique == 'stormbird#3705' or nameUnique == 'stormbird-dev#0449':
     return
 
   if not (yield from wildmagic.checkOngoingEffect(stormbird, message)):
     return
 
   yield from timezone.convertTimezone(stormbird, message)
+  yield from reaction.on_message(stormbird, message)
 
   if message.content.startswith('!help'):
     yield from help(message)
@@ -45,26 +47,13 @@ def on_message(message):
     yield from stormbird.send_message(message.channel, 'Stormbird is up since ' + startTime + '.')
     return
 
-  #TODO move this stuff outta here
-  name = str.lower(message.author.display_name)
-  if nameUnique == 'AYD#5916' and randint(1, 5) == 1:
-      yield from stormbird.add_reaction(message, '🐰')
-  elif name == 'vulpes':
-    yield from stormbird.add_reaction(message, '👻')
-  elif nameUnique == 'KindaNice#5682' and randint(1, 7) == 1:
-    yield from stormbird.add_reaction(message, '👻')
-  elif nameUnique == 'Tenshu#8481' and randint(1, 5) == 1:
-    yield from stormbird.add_reaction(message, '👻')
-  elif nameUnique == 'Serule#9451' and randint(1, 5) == 1:
-    yield from stormbird.add_reaction(message, '🐦')
-
-
 @asyncio.coroutine
 def help(message):
   reply = ("Hello, " + message.author.display_name + "! I'm Serule's minion. Try these:\n"
            "`!roll`\n"
            "`!roll 2d8`\n"
            "`!roll 20`\n"
+           "`!status`"
            "`!wild`")
   yield from stormbird.send_message(message.channel, reply)
 

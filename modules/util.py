@@ -1,4 +1,6 @@
+from random import random
 import logging
+import re
 
 logging.basicConfig(level=logging.INFO)
 
@@ -20,9 +22,21 @@ def isSuperUser(author):
       return
   return str(author) in superUserList
 
-def getArg(args, index):
-  args = args.split()
-  return None if len(args) <= index else args[index]
+def isValidUniqueUser(user):
+  if user is None:
+    return False
+  return re.match('.*#[0-9]{4}', user) is not None
+
+def sw(message, value):
+  """ Short version of startswith to check for !commands """
+  return message.content.startswith(value)
+
+def getArg(argsString, index):
+  argsList = argsString.split()
+  return None if len(argsList) <= index else argsList[index]
+
+def roll(chance):
+  return random() < chance
 
 def log(label, message):
   print('[' + label + '] ' + message)
