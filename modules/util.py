@@ -38,5 +38,8 @@ def getArg(argsString, index):
 def roll(chance):
   return random() < chance
 
+def pl(word, num):
+  return word + ('s' if num != 1 else '')
+
 def log(label, message):
   print('[' + label + '] ' + message)

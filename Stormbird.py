@@ -1,4 +1,5 @@
 from discord.ext.commands import Bot
+from modules import event
 from modules import reaction
 from modules import timezone
 from modules import util
@@ -34,8 +35,9 @@ def on_message(message):
   if not (yield from wildmagic.checkOngoingEffect(stormbird, message)):
     return
 
-  yield from timezone.convertTimezone(stormbird, message)
   yield from reaction.on_message(stormbird, message)
+  #yield from timezone.convertTimezone(stormbird, message)
+  yield from event.on_message(stormbird, message)
 
   if message.content.startswith('!help'):
     yield from help(message)

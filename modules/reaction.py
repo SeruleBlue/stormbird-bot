@@ -30,7 +30,7 @@ def on_message(bot: Bot, message):
     yield from listReactions(bot, message)
   elif util.sw(message, '!reaction purge'):
     yield from purge(bot, message)
-  elif util.sw(message, '!reaction'):
+  elif util.sw(message, '!reaction ') or message.content == '!reaction':
     yield from help(bot, message)
 
 """
@@ -157,7 +157,7 @@ Displays help.
 @asyncio.coroutine
 def help(bot, message):
   yield from bot.send_message(message.channel,
-                              ("This handles automatic reactions!\n"
+                              ("ℹ This handles automatic reactions!\n"
                                "`!reaction add Name#1234 🐦 50`\n"
                                "`!reaction remove Name#1234 🐦`\n"
                                "`!reaction list`\n"
