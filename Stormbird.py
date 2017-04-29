@@ -1,7 +1,6 @@
 from discord.ext.commands import Bot
 from modules import event
 from modules import reaction
-from modules import timezone
 from modules import util
 from modules import wildmagic
 from random import randint
@@ -52,6 +51,7 @@ def on_message(message):
 @asyncio.coroutine
 def help(message):
   reply = ("Hello, " + message.author.display_name + "! I'm Serule's minion. Try these:\n"
+           "`!event`\n"
            "`!roll`\n"
            "`!roll 2d8`\n"
            "`!roll 20`\n"

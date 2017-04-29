@@ -63,7 +63,7 @@ def setEvent(bot, message):
                                                     "`!event set name date time timezone`"))
       return
     # Reject eventnames that are longer than 1 word
-    validname = re.match('!event set [^ ]* [0-9]', message.content, re.IGNORECASE)
+    validname = re.match('!event ((set)|(add)) [^ ]* [0-9]', message.content, re.IGNORECASE)
     if not validname:
       yield from bot.send_message(message.channel, "❌ The event's name needs to be a single word.")
       return
@@ -170,7 +170,7 @@ def getReadableTimeDiff(timediff):
   if diffSeconds < 0:
     message = '(passed)'
   elif diffSeconds < THRESHOLD_SOON:
-    message = '(happening soon!)'
+    message = '(happening in < 5 minutes!)'
   elif diffSeconds < THRESHOLD_HOUR:
     diff = int(diffSeconds // 60)
     message = '(in ' + str(diff) + util.pl(' minute', diff) + ')'
@@ -178,8 +178,8 @@ def getReadableTimeDiff(timediff):
     diff = int(diffSeconds // THRESHOLD_HOUR)
     message = '(in ' + str(diff) + util.pl(' hour', diff) + ')'
   else:
-    diff = str(math.ceil(diffSeconds / THRESHOLD_DAY))
-    message = '(in ' + diff + util.pl(' day', diff) + ')'
+    diff = int(diffSeconds // THRESHOLD_DAY)
+    message = '(in ' + str(diff) + util.pl(' day', diff) + ')'
   return message
 
 """
@@ -214,12 +214,18 @@ def list(bot, message):
     nowtime = datetime.now(tz=userzone)
     response = '🗓 Events:'
 
+    events = []
+    eventname = {}
     for row in rows:
       eventtime = datetime(row['year'], row['month'], row['day'],
                            row['hour'], row['minute'], tzinfo=pytz.timezone('UTC'))
       eventtime = eventtime.astimezone(userzone)
-      response += ('\n' + row['eventname'] + ': ' + eventtime.strftime('%b %d (%a), %I:%M%p %Z') + " " +
-                   getReadableTimeDiff(eventtime - nowtime))
+      events.append(eventtime)
+      eventname[eventtime] = row['eventname']
+    events = sorted(events)
+    for eventtime in events:
+      response += ('\n' + eventname[eventtime] + ': ' + eventtime.strftime('%b %d (%a), %I:%M%p %Z') +
+                   " " + getReadableTimeDiff(eventtime - nowtime))
 
   yield from bot.send_message(message.channel, response)
 
@@ -233,7 +239,6 @@ def help(bot, message):
                               ("ℹ Shows a list of upcoming events!\n"
                                "`!event list`\n"
                                "`!event list PST`\n"
-                               "`!event set D&D-Sat 4-11 9:00p EST`\n"
-                               "`!event remove D&D-Sat`\n"
-                               "`!event purge` (Superusers only)\n"
-                               "(I only know about EST, CST, and PST.)"))
+                               "`!event set D&D 4-11 9:00p EST`\n"
+                               "`!event remove D&D`\n"
+                               "(I know about EST, CST, and PST.)"))
