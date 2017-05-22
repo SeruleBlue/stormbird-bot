@@ -21,7 +21,7 @@ def on_ready():
   ### Set up modules
   yield from wildmagic.loadEffects()
   global startTime
-  startTime = str(datetime.datetime.now())
+  startTime = datetime.datetime.now()
   util.log('Stormbird', 'Client ready.')
 
 @stormbird.event
@@ -45,7 +45,11 @@ def on_message(message):
   elif message.content.startswith('!wild'):
     yield from wildmagic.getAndApplyEffect(stormbird, message)
   elif message.content.startswith('!status'):
-    yield from stormbird.send_message(message.channel, 'Stormbird is up since ' + startTime + '.')
+    yield from stormbird.send_message(message.channel, 'Stormbird is up since ' + str(startTime) + '.')
+    return
+  elif message.content.startswith('!uptime'):
+    diffTime = datetime.datetime.now() - startTime
+    yield from stormbird.send_message(message.channel, 'Stormbird is up for ' + str(diffTime) + '.')
     return
 
 @asyncio.coroutine

@@ -212,20 +212,20 @@ def list(bot, message):
         userzone = pytz.timezone('US/Eastern')
 
     nowtime = datetime.now(tz=userzone)
-    response = '🗓 Events:'
+    response = '🗓 **Events:**'
 
     events = []
-    eventname = {}
+    # Collect the events in a pair of (time, name)
     for row in rows:
       eventtime = datetime(row['year'], row['month'], row['day'],
                            row['hour'], row['minute'], tzinfo=pytz.timezone('UTC'))
       eventtime = eventtime.astimezone(userzone)
-      events.append(eventtime)
-      eventname[eventtime] = row['eventname']
+      events.append((eventtime, row['eventname']))
+    # Now print out the events in sorted order by time
     events = sorted(events)
-    for eventtime in events:
-      response += ('\n' + eventname[eventtime] + ': ' + eventtime.strftime('%b %d (%a), %I:%M%p %Z') +
-                   " " + getReadableTimeDiff(eventtime - nowtime))
+    for eventpair in events:
+      response += ('\n**' + eventpair[1] + ':** ' + eventpair[0].strftime('%b %d (%a), %I:%M%p %Z') +
+                   " " + getReadableTimeDiff(eventpair[0] - nowtime))
 
   yield from bot.send_message(message.channel, response)
 

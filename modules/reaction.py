@@ -24,7 +24,7 @@ def on_message(bot: Bot, message):
   # Quit if not superuser, then do special commands
   if not util.isSuperUser(message.author):
     return
-  if util.sw(message, '!reaction add') or util.sw(message, '!reaction remove'):
+  if util.sw(message, '!reaction add') or util.sw(message, '!reaction set') or util.sw(message, '!reaction remove'):
     yield from updateReaction(bot, message)
   elif util.sw(message, '!reaction list'):
     yield from listReactions(bot, message)
