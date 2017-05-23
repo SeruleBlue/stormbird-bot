@@ -58,9 +58,9 @@ def getAndApplyEffect(bot: Bot, message):
                                     " more " + pl(cd, 'second') + "."))
   userStatus[name][0] = int(time.time())
 
-  if message.author == "Poly#0689":
+  if str(message.author) == "Poly#0689":
       return (yield from bot.send_message(message.channel, "(101) Poly is — wait, he's the *DM*! Poly decides" +
-                                          "what happens!"))
+                                          " what happens!"))
 
   roll = randint(0, 100)
 
