@@ -1,8 +1,10 @@
+from discord import Game
 from discord.ext.commands import Bot
 from modules import event
 from modules import reaction
 from modules import util
 from modules import wildmagic
+from modules import deckofmanythings
 from random import randint
 import asyncio
 import datetime
@@ -20,8 +22,10 @@ startTime = None
 def on_ready():
   ### Set up modules
   yield from wildmagic.loadEffects()
+  yield from deckofmanythings.loadEffects()
   global startTime
   startTime = datetime.datetime.now()
+  yield from stormbird.change_presence(game=Game(name='Type !help for commands.'))
   util.log('Stormbird', 'Client ready.')
 
 @stormbird.event
@@ -44,6 +48,8 @@ def on_message(message):
     yield from roll(message)
   elif message.content.startswith('!wild'):
     yield from wildmagic.getAndApplyEffect(stormbird, message)
+  elif message.content.startswith('!deck'):
+    yield from deckofmanythings.startDraw(stormbird, message)
   elif message.content.startswith('!status'):
     yield from stormbird.send_message(message.channel, 'Stormbird is up since ' + str(startTime) + '.')
     return
@@ -55,7 +61,9 @@ def on_message(message):
 @asyncio.coroutine
 def help(message):
   reply = ("Hello, " + message.author.display_name + "! I'm Serule's minion. Try these:\n"
+           "`!deck 1`"
            "`!event`\n"
+           "`!reaction`"
            "`!roll`\n"
            "`!roll 2d8`\n"
            "`!roll 20`\n"
