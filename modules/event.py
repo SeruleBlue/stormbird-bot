@@ -1,7 +1,8 @@
-import math
+from apscheduler.schedulers.asyncio import AsyncIOScheduler as Scheduler
 from discord.ext.commands import Bot
 from modules import util
 from datetime import datetime
+from datetime import timedelta
 from tinydb import TinyDB, where
 import asyncio
 import pytz
@@ -28,6 +29,9 @@ TIMEZONES = {
   'c': pytz.timezone('US/Central'),
   'p': pytz.timezone('US/Pacific')
 }
+
+scheduler = Scheduler(timezone=pytz.timezone('UTC'))
+scheduler.start()
 
 @asyncio.coroutine
 def on_message(bot: Bot, message):
@@ -103,6 +107,20 @@ def setEvent(bot, message):
       where('eventname') == eventname)
     yield from bot.send_message(message.channel, ("✅ Event " + eventname + " updated! " + diff + "\n" +
                                                   "See all events with `!event list`."))
+
+  # Schedule 1-hour notification
+  if 'minutes' not in diff:
+    hourtime = eventtime - timedelta(hours=1)
+    scheduler.add_job(bot.send_message, args=[message.channel,
+                                              ("🗓 **Upcoming Event:**\n**" + eventname +
+                                               "** is happening in **1 hour**!")],
+                      next_run_time=hourtime, misfire_grace_time=10)
+  # Schedule 5-minute notification
+  mintime = eventtime - timedelta(minutes=5)
+  scheduler.add_job(bot.send_message, args=[message.channel,
+                                            ("🗓 **Upcoming Event:**\n**" + eventname +
+                                             "** is happening in **5 minutes**!")],
+                    next_run_time=mintime, misfire_grace_time=10)
   return eventtime
 
 """
@@ -129,6 +147,7 @@ def parseEventTime(timeinput):
   timegroup = re.search(RE_DATE + ' (' + RE_TIME_12 + '|' + RE_TIME_24 + ') ' + RE_ZONE + '$', timeinput,
                         flags=re.IGNORECASE)
   if timegroup is not None:
+    timeinput = timegroup.group(0)
     userdate = re.search(RE_DATE, timeinput, flags=re.IGNORECASE).group(0)
     usermonth, userday = userdate.split('-' if '-' in timeinput else '/')
     userzone = re.search(RE_ZONE, timeinput, flags=re.IGNORECASE).group(0).lower()[0]
