@@ -1,7 +1,8 @@
-import math
+from apscheduler.schedulers.asyncio import AsyncIOScheduler as Scheduler
 from discord.ext.commands import Bot
 from modules import util
 from datetime import datetime
+from datetime import timedelta
 from tinydb import TinyDB, where
 import asyncio
 import pytz
@@ -29,6 +30,11 @@ TIMEZONES = {
   'p': pytz.timezone('US/Pacific')
 }
 
+notifications_enabled = True
+
+scheduler = Scheduler(timezone=pytz.timezone('UTC'))
+scheduler.start()
+
 @asyncio.coroutine
 def on_message(bot: Bot, message):
   # Ensure db is setup
@@ -45,6 +51,8 @@ def on_message(bot: Bot, message):
     yield from list(bot, message)
   elif util.isSuperUser(message.author) and util.sw(message, '!event purge'):
     yield from purge(bot, message)
+  elif util.isSuperUser(message.author) and util.sw(message, '!event notify'):
+    yield from setnotification(bot, message)
   elif util.sw(message, '!event ') or message.content == '!event':
     yield from help(bot, message)
 
@@ -103,7 +111,27 @@ def setEvent(bot, message):
       where('eventname') == eventname)
     yield from bot.send_message(message.channel, ("✅ Event " + eventname + " updated! " + diff + "\n" +
                                                   "See all events with `!event list`."))
+
+  if notifications_enabled:
+    # Schedule 1-hour notification
+    if 'minutes' not in diff:
+      hourtime = eventtime - timedelta(hours=1)
+      scheduler.add_job(sendNotification, args=[bot, message.channel,
+                                                ("🗓 **Upcoming Event:**\n**" + eventname +
+                                                 "** is happening in **1 hour**!")],
+                        next_run_time=hourtime, misfire_grace_time=10)
+    # Schedule 5-minute notification
+    mintime = eventtime - timedelta(minutes=5)
+    scheduler.add_job(sendNotification, args=[bot, message.channel,
+                                              ("🗓 **Upcoming Event:**\n**" + eventname +
+                                               "** is happening in **5 minutes**!")],
+                      next_run_time=mintime, misfire_grace_time=10)
   return eventtime
+
+@asyncio.coroutine
+def sendNotification(bot, channel, message):
+  if notifications_enabled:
+    yield from bot.send_message(channel, message)
 
 """
 Removes an event
@@ -129,6 +157,7 @@ def parseEventTime(timeinput):
   timegroup = re.search(RE_DATE + ' (' + RE_TIME_12 + '|' + RE_TIME_24 + ') ' + RE_ZONE + '$', timeinput,
                         flags=re.IGNORECASE)
   if timegroup is not None:
+    timeinput = timegroup.group(0)
     userdate = re.search(RE_DATE, timeinput, flags=re.IGNORECASE).group(0)
     usermonth, userday = userdate.split('-' if '-' in timeinput else '/')
     userzone = re.search(RE_ZONE, timeinput, flags=re.IGNORECASE).group(0).lower()[0]
@@ -192,6 +221,20 @@ def purge(bot, message):
   yield from bot.send_message(message.channel, "✅ Events cleared.")
 
 """
+Enable or disable notifications.
+!event notify [on|off]
+"""
+@asyncio.coroutine
+def setnotification(bot, message):
+  global notifications_enabled
+  if util.getArg(message.content, 2) == 'on':
+    notifications_enabled = True
+    yield from bot.send_message(message.channel, "✅ Notifications enabled.")
+  elif util.getArg(message.content, 2) == 'off':
+    notifications_enabled = False
+    yield from bot.send_message(message.channel, "⚠️Notifications disabled.")
+
+"""
 Spits out a list of all known events. Supports PST, CST, EST.
 !event list (timezone)
 """
@@ -241,4 +284,6 @@ def help(bot, message):
                                "`!event list PST`\n"
                                "`!event set D&D 4-11 9:00p EST`\n"
                                "`!event remove D&D`\n"
+                               "`!event purge`\n"
+                               "`!event notify on|off`\n"
                                "(I know about EST, CST, and PST.)"))
