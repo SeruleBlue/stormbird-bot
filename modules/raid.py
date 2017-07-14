@@ -65,6 +65,8 @@ def getStory(bot: Bot, message):
     if re.match("{[A-Z]*}", group[0]):
       if group[0] != branch:
         continue
+      else:
+        group.pop(0)
 
     line = random.choice(group)
     line = line.replace("{name}", name)
