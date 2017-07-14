@@ -1,8 +1,6 @@
-from apscheduler.schedulers.asyncio import AsyncIOScheduler as Scheduler
 from discord.ext.commands import Bot
 from modules import util
 from datetime import datetime
-from datetime import timedelta
 from tinydb import TinyDB, where
 import asyncio
 import pytz
@@ -31,9 +29,6 @@ TIMEZONES = {
 }
 
 notifications_enabled = True
-
-scheduler = Scheduler(timezone=pytz.timezone('UTC'))
-scheduler.start()
 
 @asyncio.coroutine
 def on_message(bot: Bot, message):
@@ -111,27 +106,7 @@ def setEvent(bot, message):
       where('eventname') == eventname)
     yield from bot.send_message(message.channel, ("✅ Event " + eventname + " updated! " + diff + "\n" +
                                                   "See all events with `!event list`."))
-
-  if notifications_enabled:
-    # Schedule 1-hour notification
-    if 'minutes' not in diff:
-      hourtime = eventtime - timedelta(hours=1)
-      scheduler.add_job(sendNotification, args=[bot, message.channel,
-                                                ("🗓 **Upcoming Event:**\n**" + eventname +
-                                                 "** is happening in **1 hour**!")],
-                        next_run_time=hourtime, misfire_grace_time=10)
-    # Schedule 5-minute notification
-    mintime = eventtime - timedelta(minutes=5)
-    scheduler.add_job(sendNotification, args=[bot, message.channel,
-                                              ("🗓 **Upcoming Event:**\n**" + eventname +
-                                               "** is happening in **5 minutes**!")],
-                      next_run_time=mintime, misfire_grace_time=10)
   return eventtime
-
-@asyncio.coroutine
-def sendNotification(bot, channel, message):
-  if notifications_enabled:
-    yield from bot.send_message(channel, message)
 
 """
 Removes an event
