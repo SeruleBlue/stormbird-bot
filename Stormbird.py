@@ -6,6 +6,7 @@ from modules import util
 from modules import wildmagic
 from modules import deckofmanythings
 from modules import raid
+from modules import markov
 from random import randint
 from random import choice
 import asyncio
@@ -67,6 +68,8 @@ def on_message(message):
     yield from deckofmanythings.startDraw(stormbird, message)
   elif message.content.startswith('!dungeon'):
     yield from raid.getStory(stormbird, message)
+  elif message.content.startswith('!corpus'):
+    yield from markov.loadCorpus(stormbird, message)
   elif message.content.startswith('!status'):
     yield from stormbird.send_message(message.channel, 'Stormbird is up since ' + str(startTime) + '.')
     return
