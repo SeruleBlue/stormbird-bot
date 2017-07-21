@@ -32,6 +32,7 @@ def on_ready():
   yield from wildmagic.loadEffects()
   yield from deckofmanythings.loadEffects()
   yield from raid.loadEffects()
+  yield from markov.loadEffects()
   global startTime
   startTime = datetime.datetime.now()
   util.log('Stormbird', 'Client ready.')
@@ -68,8 +69,8 @@ def on_message(message):
     yield from deckofmanythings.startDraw(stormbird, message)
   elif message.content.startswith('!dungeon'):
     yield from raid.getStory(stormbird, message)
-  elif message.content.startswith('!corpus'):
-    yield from markov.loadCorpus(stormbird, message)
+  elif message.content.startswith('!say'):
+    yield from markov.makeSentence(stormbird, message)
   elif message.content.startswith('!status'):
     yield from stormbird.send_message(message.channel, 'Stormbird is up since ' + str(startTime) + '.')
     return
@@ -88,6 +89,7 @@ def help(message):
            "`!roll`\n"
            "`!roll 2d8`\n"
            "`!roll 20`\n"
+           "`!say 2`"
            "`!status`"
            "`!wild`")
   yield from stormbird.send_message(message.channel, reply)

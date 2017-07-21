@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import markovify
 from modules import util
 
 logging.basicConfig(level=logging.INFO)
@@ -7,30 +8,35 @@ logging.basicConfig(level=logging.INFO)
 DEBUG = 'Markov'
 FILE_NAME_CORPUS = 'data/corpus.txt'
 
+text_model = None
+
 @asyncio.coroutine
-def loadCorpus(bot, message):
-  if not util.isSuperUser(message.author):
+def loadEffects():
+  try:
+    # Get raw text as string.
+    with open(FILE_NAME_CORPUS) as file:
+      text = file.read()
+    # Build the model.
+    global text_model
+    text_model = markovify.Text(text)
+    file.close()
+  except Exception as e:
+    util.log(DEBUG, "Error when loading lines: " + e)
     return
 
+@asyncio.coroutine
+# !say 2
+def makeSentence(bot, message):
   try:
-    limit = util.getArg(message.content, 1)
+    num = int(util.getArg(message.content, 1))
+    if num > 10:
+      num = 10
+    if num < 1:
+      num = 1
   except:
-    return
+    num = 1
 
-  util.log(DEBUG, "Calling loadCorpus().")
-
-  yield from bot.send_message(message.channel, "⚠ Collecting corpus with limit: " + limit)
-  messages = bot.logs_from(message.channel, limit=int(limit))
-  file = open(FILE_NAME_CORPUS, 'wb')
-  try:
-    msg = yield from messages.iterate()
-    while msg:
-      wr = msg.content + "\n"
-      file.write(wr.encode('utf8'))
-      msg = yield from messages.iterate()
-  except:
-    util.log(DEBUG, "End of log reached.")
-  file.close()
-  util.log(DEBUG, "Done!")
-  yield from bot.send_file(message.author, FILE_NAME_CORPUS)
-  yield from bot.send_message(message.channel, "✅ Success, corpus sent!")
+  reply = ''
+  for i in range(num):
+    reply += text_model.make_sentence() + ' '
+  yield from bot.send_message(message.channel, reply)
