@@ -7,6 +7,7 @@ from modules import wildmagic
 from modules import deckofmanythings
 from modules import raid
 from modules import markov
+from modules import chromaticorc
 from random import randint
 from random import choice
 import asyncio
@@ -33,6 +34,7 @@ def on_ready():
   yield from deckofmanythings.loadEffects()
   yield from raid.loadEffects()
   yield from markov.loadEffects()
+  yield from chromaticorc.loadEffects()
   global startTime
   startTime = datetime.datetime.now()
   util.log('Stormbird', 'Client ready.')
@@ -71,6 +73,8 @@ def on_message(message):
     yield from raid.getStory(stormbird, message)
   elif message.content.startswith('!say'):
     yield from markov.makeSentence(stormbird, message)
+  elif message.content.startswith('!orc'):
+    yield from chromaticorc.getOrcs(stormbird, message)
   elif message.content.startswith('!status'):
     yield from stormbird.send_message(message.channel, 'Stormbird is up since ' + str(startTime) + '.')
     return
