@@ -5,7 +5,7 @@ import logging
 
 logging.basicConfig(level=logging.INFO)
 LEN_LIMIT = 30
-wordDict = [[] for i in range(LEN_LIMIT)]
+wordDict = []
 
 DIRECTORY = 'data/'
 FILE_NAME_DICT = DIRECTORY + '/dictionary.txt'
@@ -14,6 +14,7 @@ FILE_NAME_DICT = DIRECTORY + '/dictionary.txt'
 def loadEffects():
   try:
     global wordDict
+    wordDict = [[] for i in range(LEN_LIMIT)]
     file = open(FILE_NAME_DICT, 'r')
     words = [x.strip('\n') for x in file.readlines()]
     for word in words:
