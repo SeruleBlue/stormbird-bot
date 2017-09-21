@@ -1,5 +1,6 @@
 from discord import Game
 from discord.ext.commands import Bot
+from discord import Emoji
 from modules import event
 from modules import reaction
 from modules import util
@@ -65,6 +66,8 @@ def on_message(message):
     yield from help(message)
   elif message.content.startswith('!roll'):
     yield from roll(message)
+  elif message.content.startswith('!sroll'):
+    yield from sroll(message)
   elif message.content.startswith('!wild'):
     yield from wildmagic.getAndApplyEffect(stormbird, message)
   elif message.content.startswith('!deck'):
@@ -122,6 +125,44 @@ def roll(message):
 
   result = ', '.join(str(randint(1, limit)) for r in range(rolls))
   yield from stormbird.send_message(message.channel, result)
+
+# !sroll 6
+@asyncio.coroutine
+def sroll(message):
+  """Rolls d6 dice in N format."""
+  cmd = message.content
+  # Validate syntax
+  try:
+    rollArg = util.getArg(message.content, 1)
+    rolls = int(rollArg)
+  except:
+    return
+
+  if rolls < 1 or rolls > 30:
+    return
+
+  result = ''
+  hits = 0
+  glitches = 0
+  for r in range(0, rolls):
+    roll = randint(1, 6)
+    if roll >= 5:
+      hits += 1
+    elif roll == 1:
+      glitches += 1
+    earr = [360257354694000641, 360257354765434892, 360257354853253121,
+            360257355142922240, 360257355134402560, 360257355138727946]
+    emoji = Emoji(id=earr[roll - 1], server=stormbird.get_server(112471696346255360))
+    result += str(emoji)
+  glitch = ''
+  if glitches > int(rolls / 2):
+    if hits == 0:
+      glitch = ' - ‼️***Critical Glitch*** ‼'
+    else:
+      glitch = ' - ❗ ***Glitch*** ❗'
+
+  yield from stormbird.send_message(message.channel, '🎲 **' + str(hits) + '** ' + util.pl('hit', hits) +
+                                    glitch + '\n' + result)
 
 """ Read the key and run the bot. """
 try:
