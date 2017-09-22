@@ -1,4 +1,5 @@
 from discord import Game
+from discord import Channel
 from discord.ext.commands import Bot
 from discord import Emoji
 from modules import event
@@ -26,6 +27,17 @@ playing = ["Factorio", "Ace Combat 04", "Ace Combat 5", "Ace Combat Zero",
            "Avian Attorney", "Danganronpa", "Cyberslide", "A Stroll Through Slipspace",
            "Terraria", "Stardew Valley", "PyCharm", "Flash CS6", "FlashDevelop",
            "ArtStudio", "WildStar", "Shenzhen I/O", "GIMP", "IntelliJ"]
+channel_ids = {
+  "general": 112471696346255360,
+  "no-chill": 248650477124845568,
+  "pewpew": 187374895221440512,
+  "dnd": 274778951656931328,
+  "dndowntime-sun": 293855923078823937,
+  "dndowntime-sat": 293855987918700546,
+  "shadowrun": 359655042661351424,
+  "secret-birdland": 304113936729374720,
+  "tester": 337827740596043778
+}
 
 @stormbird.event
 @asyncio.coroutine
@@ -51,9 +63,9 @@ def change_playing():
 @stormbird.event
 @asyncio.coroutine
 def on_message(message):
-  nameUnique = str(message.author)
-  if nameUnique == 'stormbird#3705' or nameUnique == 'stormbird-dev#0449':
-    return
+  #nameUnique = str(message.author)
+  #if nameUnique == 'stormbird#3705' or nameUnique == 'stormbird-dev#0449':
+  #  return
 
   if not (yield from wildmagic.checkOngoingEffect(stormbird, message)):
     return
@@ -78,6 +90,8 @@ def on_message(message):
     yield from markov.makeSentence(stormbird, message)
   elif message.content.startswith('!orc'):
     yield from chromaticorc.getOrcs(stormbird, message)
+  elif message.content.startswith('!courier'):
+    yield from courier(message)
   elif message.content.startswith('!status'):
     yield from stormbird.send_message(message.channel, 'Stormbird is up since ' + str(startTime) + '.')
     return
@@ -89,17 +103,39 @@ def on_message(message):
 @asyncio.coroutine
 def help(message):
   reply = ("Hello, " + message.author.display_name + "! I'm Serule's minion. Try these:\n"
-           "`!deck 1`"
-           "`!dungeon`"
+           "`!deck 1`\n"
+           "`!dungeon`\n"
            "`!event`\n"
-           "`!reaction`"
+           "`!orc Ray of Frost`\n"
+           "`!reaction`\n"
            "`!roll`\n"
            "`!roll 2d8`\n"
            "`!roll 20`\n"
-           "`!say 2`"
-           "`!status`"
+           "`!say 2`\n"
+           "`!sroll 8`\n"
+           "`!status`\n"
+           "`!uptime`\n"
            "`!wild`")
   yield from stormbird.send_message(message.channel, reply)
+
+# !courier channelName message
+@asyncio.coroutine
+def courier(message):
+  if str(message.author) == 'stormbird#3705' or str(message.author) == 'stormbird-dev#0449':
+    return
+  if not util.isSuperUser(message.author):
+    return
+  try:
+    channelName = util.getArg(message.content, 1)
+  except:
+    return
+  if not channelName in channel_ids:
+    return (yield from stormbird.send_message(message.channel, "❌ Channel not recognized."))
+  #spChannel = Channel(name=channelName, server=stormbird.get_server(307345566747328524), id=channel_ids[channelName])
+  spChannel = stormbird.get_channel(str(channel_ids[channelName]))
+  print(spChannel)
+  yield from stormbird.send_message(spChannel, ' '.join(str.split(message.content)[2:])
+)
 
 @asyncio.coroutine
 def roll(message):
@@ -107,7 +143,6 @@ def roll(message):
   rolls = 1   # default times to roll
   limit = 100 # default die faces
 
-  args = str.split(message.content)
   diceArg = util.getArg(message.content, 1)
   if diceArg is not None:
     if re.search('^[0-9]+d[0-9]+$', diceArg) is not None:
@@ -130,7 +165,6 @@ def roll(message):
 @asyncio.coroutine
 def sroll(message):
   """Rolls d6 dice in N format."""
-  cmd = message.content
   # Validate syntax
   try:
     rollArg = util.getArg(message.content, 1)
