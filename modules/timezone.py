@@ -2,58 +2,94 @@ from discord.ext.commands import Bot
 import asyncio
 import logging
 import re
+import time
 
 logging.basicConfig(level=logging.INFO)
 
-timeZoneIter = ['P', 'C', 'E']
-timeZones = {
-  'E': 0,
-  'C': 1,
-  'P': 3
+tzToOffset = {
+  "PST": -8,
+  "CST": -6,
+  "EST": -5
 }
 
 @asyncio.coroutine
-def convertTimezone(bot: Bot, message):
+def detectTimezones(bot: Bot, message, outputZones=None):
   # find everything that could be a time
-  timeGroups = re.finditer("\\b[0-9]{1,2}(:[0-9]{2})?[ ]?[AaPp][Mm]?[ ][EeCcPp][Ss][Tt]\\b", message.content)
+  # 1:hour, 2:minute, 3:am/pm, 4:timezone, 5:gmt offset
+  timeGroups = re.finditer("([0-9]{1,2}):([0-9]{2})?[ ]?([ap])[m]?[ ]([a-z]{3})([+-][0-9]+)?\\b", message.content, re.I)
   if timeGroups is None:
     return
-
-  response = ""
-
-  for reMatch in timeGroups:
-    timeGroup = reMatch.group()
-    baseZone = timeZones[timeGroup[-3].upper()]
-    rawTime = timeGroup[:timeGroup.rfind(' ')]
-    minute = "00"
-    if ':' in rawTime:
-      c = rawTime.index(':')
-      hour = int(rawTime[:c])
-      minute = rawTime[c+1:c+3].zfill(2)
-    else:
-      hour = int(re.sub("\D", "", rawTime))
-    if hour > 12 or int(minute) > 59:
+  response = "⏲️ Converted time:"
+  shouldReply = False
+  for timeGroup in timeGroups:
+    timeZone = timeGroup.expand("\\4").upper()
+    gmtOff = timeGroup.expand("\\5")
+    if not timeZone in tzToOffset and not gmtOff:
       continue
-    subresponse = timeGroup + " is: "
-    for zone in timeZoneIter:
+    hour = int(timeGroup.expand("\\1"))
+    minute = int(timeGroup.expand("\\2"))
+    if minute >= 60:  # screw you, buddy!
+      continue
+    isAm = "a" in timeGroup.expand("\\3").lower()
+    if hour == 12 and isAm:
+      hour = 0
+    elif hour != 12 and not isAm:
+      hour += 12
+    fullTime = hour * 100 + minute
+    response += '\n' + (yield from convertTimezone(fullTime, timeZone, gmtOff, outputZones))
+    shouldReply = True
+  if shouldReply:
+    return (yield from bot.send_message(message.channel, response))
 
-      if 'a' in rawTime:
-        zHour = hour + baseZone - timeZones[zone] - 12
-      else:
-        zHour = hour + baseZone - timeZones[zone] + (0 if hour == 12 else 12)
+# !time my-time GMT+10
+@asyncio.coroutine
+def convertMessage(bot: Bot, message):
+  outputZone = re.search("\\b\S+$", message.content, re.I)
+  zone = outputZone.group(0)
+  if outputZone and "GMT" in zone.upper():
+    message.content = message.content[:message.content.index(zone)]
+    yield from detectTimezones(bot, message, [zone])
 
-      ap = 'a'
-      if zHour >= 12:
-        zHour -= 12
-        if zHour != 12:
-          ap = 'p'
-      if zHour == 0:
-        zHour = 12
-      elif zHour < 0:
-        zHour += 12
-        ap = 'a' if ap == 'p' else 'p'
-      subresponse += str(zHour) + ":" + minute + ap + "m " + zone + "ST, "
-    response += subresponse[:-2] + "\n"
+# example args (bot, 1300, GMT, +2, [PST, -2])
+@asyncio.coroutine
+def convertTimezone(fullTime, inputZone, inputOffset, outputZones=None):
+  if not outputZones:
+    outputZones = ["PST", "CST", "EST"]
+  if inputOffset == '':
+    inputOffset = 0
+  if inputZone in tzToOffset:
+    inputOffset += tzToOffset[inputZone]
 
-  if response != "":
-    return (yield from bot.send_message(message.channel, response[:-1]))
+  outputs = []
+  for zone in outputZones:
+    # Adjust for DST
+    if zone not in tzToOffset and time.localtime().tm_isdst:
+      fullTime -= 100
+      if fullTime < 0:
+        fullTime += 2400
+    if zone in tzToOffset:
+      outputOffset = tzToOffset[zone]
+    else:
+      # Fucking ugly
+      if '-' in zone:
+        outputOffset = int(zone[zone.index('-')+1:])
+      elif '+' in zone:
+        outputOffset = int(zone[zone.index('+')+1:])
+    decorators = "**" if inputOffset == outputOffset else ""
+    outputs.append(decorators + timeToTime(fullTime, inputOffset, outputOffset) + ' ' + zone.upper() + decorators)
+  return ', '.join(outputs)
+
+# inputTime as a time in 24H format
+# inputZone as an offset from GMT
+# outputZone as an offset from GMT
+# returns time in 11:20pm format
+def timeToTime(inputTime, inputOffset, outputOffset):
+  time = (inputTime + 100 * (int(outputOffset) - int(inputOffset))) % 2400
+  ampm = "am" if time < 1200 else "pm"
+  hours = time // 100
+  if hours > 12:
+    hours -= 12
+  elif hours == 0:
+    hours = 12
+  minutes = time % 100
+  return str(hours) + ':' + ("0" if minutes < 10 else "") + str(minutes) + ampm

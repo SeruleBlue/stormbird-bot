@@ -1,7 +1,7 @@
 from discord import Game
-from discord import Channel
 from discord.ext.commands import Bot
 from discord import Emoji
+from modules import timezone
 from modules import event
 from modules import reaction
 from modules import util
@@ -63,7 +63,7 @@ def change_playing():
 @stormbird.event
 @asyncio.coroutine
 def on_message(message):
-  #nameUnique = str(message.author)
+  nameUnique = str(message.author)
   #if nameUnique == 'stormbird#3705' or nameUnique == 'stormbird-dev#0449':
   #  return
 
@@ -71,11 +71,14 @@ def on_message(message):
     return
 
   yield from reaction.on_message(stormbird, message)
-  #yield from timezone.convertTimezone(stormbird, message)
+  if not message.content.startswith('!time') and nameUnique != 'stormbird#3705' and nameUnique != 'stormbird-dev#0449':
+    yield from timezone.detectTimezones(stormbird, message)
   yield from event.on_message(stormbird, message)
 
   if message.content.startswith('!help'):
     yield from help(message)
+  elif message.content.startswith('!time'):
+    yield from timezone.convertMessage(stormbird, message)
   elif message.content.startswith('!roll'):
     yield from roll(message)
   elif message.content.startswith('!sroll'):
@@ -131,9 +134,7 @@ def courier(message):
     return
   if not channelName in channel_ids:
     return (yield from stormbird.send_message(message.channel, "❌ Channel not recognized."))
-  #spChannel = Channel(name=channelName, server=stormbird.get_server(307345566747328524), id=channel_ids[channelName])
   spChannel = stormbird.get_channel(str(channel_ids[channelName]))
-  print(spChannel)
   yield from stormbird.send_message(spChannel, ' '.join(str.split(message.content)[2:])
 )
 
